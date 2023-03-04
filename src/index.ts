@@ -1,26 +1,17 @@
+import { BookIcon } from '@sanity/icons'
 import { definePlugin } from 'sanity'
+import { ReleaseNotes } from './component'
 
-interface MyPluginConfig {
-  /* nothing here yet */
+const tool = {
+  title: 'Release Notes',
+  name: 'releaseNotes',
+  icon: BookIcon,
+  component: ReleaseNotes,
 }
 
-/**
- * Usage in `sanity.config.ts` (or .js)
- *
- * ```ts
- * import {defineConfig} from 'sanity'
- * import {myPlugin} from 'sanity-plugin-release-notes'
- *
- * export default defineConfig({
- *   // ...
- *   plugins: [myPlugin()],
- * })
- * ```
- */
-export const myPlugin = definePlugin<MyPluginConfig | void>((config = {}) => {
-  // eslint-disable-next-line no-console
-  console.log('hello from sanity-plugin-release-notes')
+export const releaseNotes = definePlugin(() => {
   return {
     name: 'sanity-plugin-release-notes',
+    tools: (prev) => [...prev, tool],
   }
 })
