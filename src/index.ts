@@ -1,4 +1,4 @@
-import {definePlugin} from 'sanity'
+import { definePlugin } from 'sanity'
 
 interface MyPluginConfig {
   /* nothing here yet */
