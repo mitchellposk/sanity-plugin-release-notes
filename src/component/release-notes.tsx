@@ -1,6 +1,6 @@
 import React from 'react'
 import { TrashIcon } from '@sanity/icons'
-import { Button, Card, Text } from '@sanity/ui'
+import { Button, Card, Spinner, Text, useToast } from '@sanity/ui'
 import { SanityDocument, useClient } from 'sanity'
 import { apiVersion } from '../constants'
 import { dateToMonthDayYear } from '../utils'
@@ -14,11 +14,14 @@ type ReleaseNote = SanityDocument & {
 
 const ReleaseNotes = () => {
   const [releaseNotes, setReleaseNotes] = React.useState<ReleaseNote[]>([])
+  const [releaseNotesLoading, setReleaseNotesLoading] = React.useState(true)
+  const [isDeletingReleaseNote, setIsDeletingReleaseNote] = React.useState<string | null>(null)
   const [open, setOpen] = React.useState(false)
   const [selectedReleaseNote, setSelectedReleaseNote] = React.useState<ReleaseNote | null>(null)
   const onClose = React.useCallback(() => setOpen(false), [])
   const onOpen = React.useCallback(() => setOpen(true), [])
   const client = useClient({ apiVersion })
+  const toast = useToast()
 
   React.useEffect(() => {
     async function getReleaseNotes() {
@@ -28,9 +31,23 @@ const ReleaseNotes = () => {
       })
       setReleaseNotes(sortedNotes)
       setSelectedReleaseNote(sortedNotes?.[0] ?? null)
+      setReleaseNotesLoading(false)
     }
     getReleaseNotes()
-  }, [open])
+  }, [open, isDeletingReleaseNote, client])
+
+  React.useEffect(() => {
+    if (!releaseNotesLoading && !releaseNotes.length) {
+      onOpen()
+    }
+  }, [onOpen, releaseNotes.length, releaseNotesLoading])
+
+  const handleDeleteNote = async (noteId: string) => {
+    setIsDeletingReleaseNote(noteId)
+    await client.delete(noteId)
+    toast.push({ status: 'success', title: 'Release Note Successfully Deleted' })
+    setIsDeletingReleaseNote(null)
+  }
 
   return (
     <div style={{ textAlign: 'center', width: '60%', margin: '0 auto' }}>
@@ -62,26 +79,44 @@ const ReleaseNotes = () => {
               className={'release-note-option'}
               style={{
                 cursor: 'pointer',
-                padding: '12px 0 0 0',
+                padding: '14px 0 0 0',
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
               }}
             >
-              <Text style={{ display: 'inline-block' }} size={3}>
+              <Text
+                weight={selectedReleaseNote?._id === note._id ? 'bold' : 'regular'}
+                muted={selectedReleaseNote?._id !== note._id}
+                style={{ display: 'inline-block' }}
+                size={3}
+              >
                 {dateToMonthDayYear(new Date(note._createdAt))}{' '}
               </Text>
-              <TrashIcon style={{ margin: 'auto', height: '100%' }} />
+
+              {isDeletingReleaseNote === note._id ? (
+                <Spinner style={{ margin: 'auto', height: '100%' }} />
+              ) : (
+                <TrashIcon
+                  onClick={() => handleDeleteNote(note._id)}
+                  scale={4}
+                  style={{ margin: 'auto', height: '100%' }}
+                />
+              )}
             </Card>
           ))}
         </Card>
-        <Card style={{ borderLeft: '1px solid grey' }}>
-          <Text style={{ paddingLeft: '2rem' }} size={4}>
-            {selectedReleaseNote?.title ?? 'loading...'}
-          </Text>
-          <Text style={{ padding: '1rem 0 0 2rem' }}>
-            {selectedReleaseNote?.textArea ?? 'loading...'}
-          </Text>
-        </Card>
+        {releaseNotesLoading ? (
+          <Card>
+            <Spinner />
+          </Card>
+        ) : (
+          <Card style={{ borderLeft: '1px solid grey' }}>
+            <Text style={{ paddingLeft: '2rem' }} size={4}>
+              {selectedReleaseNote?.title ?? ' ✏️ No Release Notes, Create One'}
+            </Text>
+            <Text style={{ padding: '1rem 0 0 2rem' }}>{selectedReleaseNote?.textArea ?? ''}</Text>
+          </Card>
+        )}
       </div>
       {open && <CreateReleaseNoteDialog onClose={onClose} />}
     </div>
